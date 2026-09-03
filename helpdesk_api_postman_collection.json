@@ -1,0 +1,508 @@
+{
+  "info": {
+    "_postman_id": "8f3b2c1a-7e4d-4b9a-a823-helpdesk2026",
+    "name": "Helpdesk Enterprise Security API - Taller Auth & JWT",
+    "description": "Colección completa de pruebas para el Taller Evaluativo de Autenticación Stateless y Control de Acceso RBAC con Spring Boot 4 y JJWT.\n\nIncluye scripts automáticos para almacenar los tokens JWT en variables de colección y probar la matriz de seguridad por roles.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "cliente_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "soporte_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticket_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00. Pruebas Iniciales (Código Base)",
+      "description": "Peticiones para verificar el backend en el arranque inicial de src_base. Al incluir spring-boot-starter-security sin SecurityConfig.java, Spring Boot activa su formulario web por defecto (/login) y responde 401 Unauthorized. Una vez implementada la seguridad con JWT (Fases 1 a 5), estas rutas responderán 403 Forbidden para clientes no autorizados.",
+      "item": [
+        {
+          "name": "GET Listar Tickets (Sin Auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets"]
+            },
+            "description": "Al inicio del taller sobre src_base responderá 401 Unauthorized (o el formulario web 'Please sign in' si se siguen redirecciones). Tras implementar SecurityConfig con Stateless JWT, responderá 403 Forbidden."
+          }
+        },
+        {
+          "name": "POST Crear Ticket (Sin Auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"titulo\": \"Prueba inicial sin token\",\n    \"descripcion\": \"Verificación del backend en arranque inicial.\",\n    \"prioridad\": \"BAJA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets"]
+            }
+          }
+        },
+        {
+          "name": "GET Auditoría Admin (Sin Auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/auditoria",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "auditoria"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01. Autenticación (Auth)",
+      "description": "Endpoints públicos de registro y emisión de tokens JWT. Los scripts automáticos guardan el token recibido en las variables de la colección.",
+      "item": [
+        {
+          "name": "POST Registrar Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let json = pm.response.json();",
+                  "    pm.collectionVariables.set('cliente_token', json.token);",
+                  "    pm.collectionVariables.set('jwt_token', json.token);",
+                  "    console.log('Token de CLIENTE guardado correctamente.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"cliente_demo\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Registra un usuario con rol CLIENTE y guarda automáticamente su token en {{cliente_token}} y {{jwt_token}}."
+          }
+        },
+        {
+          "name": "POST Registrar Soporte",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let json = pm.response.json();",
+                  "    pm.collectionVariables.set('soporte_token', json.token);",
+                  "    console.log('Token de SOPORTE guardado en {{soporte_token}}.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"soporte_laura\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register-soporte",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register-soporte"]
+            },
+            "description": "Registra un técnico de soporte con rol SOPORTE y almacena el token en {{soporte_token}}."
+          }
+        },
+        {
+          "name": "POST Registrar Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let json = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', json.token);",
+                  "    console.log('Token de ADMIN guardado en {{admin_token}}.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin_root\",\n    \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register-admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register-admin"]
+            },
+            "description": "Registra un administrador con rol ADMIN y guarda el token en {{admin_token}}."
+          }
+        },
+        {
+          "name": "POST Login (Credenciales Válidas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    let json = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', json.token);",
+                  "    console.log('Login exitoso: token actualizado en {{jwt_token}}.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"cliente_demo\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Autentica credenciales y emite token JWT."
+          }
+        },
+        {
+          "name": "POST Login (Credenciales Inválidas -> 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"cliente_demo\",\n    \"password\": \"password_erroneo\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Prueba de autenticación fallida. Debe responder con HTTP 401 UNAUTHORIZED."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Gestión de Incidentes (Tickets)",
+      "description": "Operaciones CRUD sobre tickets utilizando tokens Bearer.",
+      "item": [
+        {
+          "name": "POST Crear Ticket (Como CLIENTE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    let json = pm.response.json();",
+                  "    pm.collectionVariables.set('ticket_id', json.id);",
+                  "    console.log('Ticket creado con ID:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cliente_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"titulo\": \"Falla en portal corporativo de pagos\",\n    \"descripcion\": \"Error 500 al confirmar transacción con pasarela PSE.\",\n    \"prioridad\": \"ALTA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets"]
+            },
+            "description": "Crea un ticket autenticado como CLIENTE (o ADMIN). Retorna 201 Created y guarda el ID en {{ticket_id}}."
+          }
+        },
+        {
+          "name": "GET Listar Tickets (Como CLIENTE / SOPORTE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cliente_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets"]
+            },
+            "description": "Permitido para CLIENTE, SOPORTE y ADMIN."
+          }
+        },
+        {
+          "name": "GET Buscar Ticket por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cliente_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets/{{ticket_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets", "{{ticket_id}}"]
+            },
+            "description": "Obtiene los detalles del ticket con ID {{ticket_id}}."
+          }
+        },
+        {
+          "name": "PUT Actualizar Estado (Como SOPORTE)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{soporte_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"estado\": \"EN_PROCESO\",\n    \"tecnicoAsignado\": \"soporte_laura\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets/{{ticket_id}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets", "{{ticket_id}}", "estado"]
+            },
+            "description": "Actualiza el estado a EN_PROCESO y asigna el técnico. Permitido para SOPORTE y ADMIN."
+          }
+        },
+        {
+          "name": "DELETE Eliminar Ticket (Como ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets/{{ticket_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets", "{{ticket_id}}"]
+            },
+            "description": "Elimina el ticket permanentemente. Exclusivo para ADMIN. Retorna 204 No Content."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Panel de Administración",
+      "description": "Endpoints restringidos exclusivamente a administradores.",
+      "item": [
+        {
+          "name": "GET Auditoría del Sistema (Como ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/auditoria",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "auditoria"]
+            },
+            "description": "Retorna métricas operacionales del sistema. Exclusivo para ADMIN."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Pruebas de RBAC y Control de Acceso (Matriz)",
+      "description": "Peticiones para verificar que la seguridad bloquea accesos no autorizados con 403 Forbidden.",
+      "item": [
+        {
+          "name": "CLIENTE intenta Actualizar Estado -> 403 Forbidden",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cliente_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"estado\": \"RESUELTO\",\n    \"tecnicoAsignado\": \"cliente_infiltrado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets/{{ticket_id}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets", "{{ticket_id}}", "estado"]
+            },
+            "description": "Debe ser bloqueado con 403 Forbidden porque los clientes no tienen permiso para modificar estados de tickets."
+          }
+        },
+        {
+          "name": "CLIENTE intenta Eliminar Ticket -> 403 Forbidden",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cliente_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets/{{ticket_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets", "{{ticket_id}}"]
+            },
+            "description": "Debe ser bloqueado con 403 Forbidden porque solo ADMIN puede eliminar incidentes."
+          }
+        },
+        {
+          "name": "SOPORTE intenta Eliminar Ticket -> 403 Forbidden",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{soporte_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tickets/{{ticket_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tickets", "{{ticket_id}}"]
+            },
+            "description": "Debe responder con 403 Forbidden porque SOPORTE no tiene privilegios de borrado."
+          }
+        },
+        {
+          "name": "CLIENTE intenta acceder a Auditoría ADMIN -> 403 Forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cliente_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/auditoria",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "auditoria"]
+            },
+            "description": "Debe ser rechazado con 403 Forbidden al intentar acceder a rutas bajo /api/v1/admin/**."
+          }
+        }
+      ]
+    }
+  ]
+}

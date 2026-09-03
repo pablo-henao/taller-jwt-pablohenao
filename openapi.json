@@ -1,0 +1,596 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Helpdesk Enterprise Security API",
+    "description": "Especificación OpenAPI 3.0 para pruebas de la API REST del Taller Evaluativo de Autenticación Stateless y Control de Acceso RBAC con Spring Boot 4 y JJWT.\n\nEsta especificación puede ser importada directamente en **Swagger UI / Swagger Editor**, **Postman**, **Bruno** o **Insomnia** para probar el backend al inicio del taller y durante el desarrollo de la capa de seguridad.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Servidor Local de Desarrollo (Spring Boot)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Autenticación",
+      "description": "Endpoints públicos para registro de usuarios y generación de tokens JWT"
+    },
+    {
+      "name": "Gestión de Tickets",
+      "description": "Operaciones CRUD sobre tickets e incidentes de soporte protegidas por roles RBAC"
+    },
+    {
+      "name": "Administración",
+      "description": "Endpoints de auditoría y métricas del sistema restringidos exclusivamente al rol ADMIN"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Autenticación"],
+        "summary": "Registrar nuevo usuario con rol CLIENTE",
+        "description": "Crea una cuenta para un cliente final y devuelve un token JWT para autenticación inmediata.",
+        "operationId": "registerCliente",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              },
+              "example": {
+                "username": "cliente_demo",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario registrado exitosamente con token JWT retornado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de petición inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register-soporte": {
+      "post": {
+        "tags": ["Autenticación"],
+        "summary": "Registrar nuevo usuario con rol SOPORTE",
+        "description": "Crea una cuenta para personal de soporte técnico y devuelve un token JWT.",
+        "operationId": "registerSoporte",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              },
+              "example": {
+                "username": "soporte_laura",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario soporte registrado exitosamente con token JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register-admin": {
+      "post": {
+        "tags": ["Autenticación"],
+        "summary": "Registrar nuevo usuario con rol ADMIN",
+        "description": "Crea una cuenta de administrador del sistema y devuelve un token JWT.",
+        "operationId": "registerAdmin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              },
+              "example": {
+                "username": "admin_root",
+                "password": "admin123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Administrador registrado exitosamente con token JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Autenticación"],
+        "summary": "Iniciar sesión y obtener token JWT",
+        "description": "Valida las credenciales contra la base de datos y retorna un token JWT firmado si son válidas.",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              },
+              "example": {
+                "username": "cliente_demo",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Autenticación exitosa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tickets": {
+      "get": {
+        "tags": ["Gestión de Tickets"],
+        "summary": "Listar todos los tickets del sistema",
+        "description": "Permitido para los roles: `CLIENTE`, `SOPORTE`, `ADMIN`. Requiere cabecera `Authorization: Bearer <token>`.",
+        "operationId": "listarTickets",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de tickets obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TicketResponseDTO"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado o token ausente/expirado"
+          },
+          "403": {
+            "description": "Acceso denegado (Rol sin permisos)"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Gestión de Tickets"],
+        "summary": "Crear un nuevo ticket de soporte",
+        "description": "Permitido para los roles: `CLIENTE`, `ADMIN`. Registra un incidente y asigna automáticamente al usuario creador desde el contexto de seguridad.",
+        "operationId": "crearTicket",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketRequestDTO"
+              },
+              "example": {
+                "titulo": "Error en inicio de sesión VPN",
+                "descripcion": "La conexión remota se desconecta tras 5 minutos de inactividad.",
+                "prioridad": "ALTA"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ticket creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de petición inválidos"
+          },
+          "403": {
+            "description": "Acceso denegado (ej. usuarios no autorizados)"
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{id}": {
+      "get": {
+        "tags": ["Gestión de Tickets"],
+        "summary": "Buscar ticket por su ID",
+        "description": "Permitido para: `CLIENTE`, `SOPORTE`, `ADMIN`.",
+        "operationId": "buscarTicketPorId",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador numérico del ticket",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalle del ticket encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket no encontrado con el ID proporcionado"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Gestión de Tickets"],
+        "summary": "Eliminar permanentemente un ticket",
+        "description": "Acceso exclusivo para rol `ADMIN`. Clientes y personal de soporte recibirán 403 Forbidden.",
+        "operationId": "eliminarTicket",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador numérico del ticket a eliminar",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Ticket eliminado correctamente (sin contenido)"
+          },
+          "403": {
+            "description": "Prohibido: Solo administradores pueden eliminar tickets"
+          },
+          "404": {
+            "description": "Ticket no encontrado"
+          }
+        }
+      }
+    },
+    "/api/v1/tickets/{id}/estado": {
+      "put": {
+        "tags": ["Gestión de Tickets"],
+        "summary": "Actualizar el estado de un ticket y asignar técnico",
+        "description": "Permitido para roles: `SOPORTE`, `ADMIN`. Los clientes no pueden actualizar estados (reciben 403).",
+        "operationId": "actualizarEstadoTicket",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador numérico del ticket",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActualizarEstadoDTO"
+              },
+              "example": {
+                "estado": "EN_PROCESO",
+                "tecnicoAsignado": "soporte_laura"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado del ticket actualizado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDTO"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Prohibido: Rol CLIENTE no tiene autorización para cambiar estado"
+          },
+          "404": {
+            "description": "Ticket no encontrado"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/auditoria": {
+      "get": {
+        "tags": ["Administración"],
+        "summary": "Consultar auditoría y métricas del sistema",
+        "description": "Acceso exclusivo para rol `ADMIN`. Retorna estado operacional y recuento de incidentes.",
+        "operationId": "obtenerAuditoria",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Panel de auditoría obtenido con éxito",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditoriaResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Prohibido: Requiere rol ADMIN"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Ingresa el token JWT recibido en /api/v1/auth/login o /api/v1/auth/register (ej: Bearer eyJhbGci...)"
+      }
+    },
+    "schemas": {
+      "AuthRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Nombre de usuario único",
+            "example": "cliente_demo"
+          },
+          "password": {
+            "type": "string",
+            "description": "Contraseña en texto plano",
+            "example": "password123"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token JWT firmado con HMAC-SHA256 para autenticación Bearer",
+            "example": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjbGllbnRlX2RlbW8iLCJpYXQiOjE3NTY5MDU2MDAsImV4cCI6MTc1Njk5MjAwMH0.abcdef..."
+          }
+        }
+      },
+      "TicketRequestDTO": {
+        "type": "object",
+        "required": ["titulo", "descripcion", "prioridad"],
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "description": "Título breve del incidente",
+            "example": "Error en inicio de sesión VPN"
+          },
+          "descripcion": {
+            "type": "string",
+            "description": "Descripción detallada del problema",
+            "example": "La pantalla queda en blanco al autenticar con LDAP corporativo."
+          },
+          "prioridad": {
+            "type": "string",
+            "enum": ["BAJA", "MEDIA", "ALTA", "CRITICA"],
+            "description": "Nivel de criticidad del ticket",
+            "example": "ALTA"
+          }
+        }
+      },
+      "ActualizarEstadoDTO": {
+        "type": "object",
+        "required": ["estado"],
+        "properties": {
+          "estado": {
+            "type": "string",
+            "enum": ["ABIERTO", "EN_PROCESO", "RESUELTO", "CERRADO"],
+            "description": "Nuevo estado del incidente",
+            "example": "EN_PROCESO"
+          },
+          "tecnicoAsignado": {
+            "type": "string",
+            "description": "Nombre de usuario del técnico de soporte responsable",
+            "example": "soporte_laura"
+          }
+        }
+      },
+      "TicketResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Identificador único autoincremental",
+            "example": 1
+          },
+          "titulo": {
+            "type": "string",
+            "example": "Error en inicio de sesión VPN"
+          },
+          "descripcion": {
+            "type": "string",
+            "example": "La pantalla queda en blanco al autenticar con LDAP corporativo."
+          },
+          "prioridad": {
+            "type": "string",
+            "enum": ["BAJA", "MEDIA", "ALTA", "CRITICA"],
+            "example": "ALTA"
+          },
+          "estado": {
+            "type": "string",
+            "enum": ["ABIERTO", "EN_PROCESO", "RESUELTO", "CERRADO"],
+            "example": "ABIERTO"
+          },
+          "creadorUsername": {
+            "type": "string",
+            "example": "cliente_demo"
+          },
+          "tecnicoAsignado": {
+            "type": "string",
+            "nullable": true,
+            "example": "soporte_laura"
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-09-03T10:15:30"
+          }
+        }
+      },
+      "AuditoriaResponse": {
+        "type": "object",
+        "properties": {
+          "sistema": {
+            "type": "string",
+            "example": "Helpdesk Enterprise Security API"
+          },
+          "estado": {
+            "type": "string",
+            "example": "OPERACIONAL"
+          },
+          "totalTickets": {
+            "type": "integer",
+            "example": 3
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-09-03T10:15:30"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "example": "2026-09-03T10:15:30"
+          },
+          "error": {
+            "type": "string",
+            "example": "UNAUTHORIZED"
+          },
+          "mensaje": {
+            "type": "string",
+            "example": "Credenciales inválidas. Por favor verifica tu usuario o contraseña."
+          }
+        }
+      },
+      "ErrorValidacionResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "example": {
+          "titulo": "El título no puede estar vacío",
+          "prioridad": "La prioridad es obligatoria"
+        }
+      }
+    }
+  }
+}
